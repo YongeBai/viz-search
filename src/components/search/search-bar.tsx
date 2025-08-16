@@ -34,18 +34,10 @@ export function SearchBar({
   const [placeholder, setPlaceholder] = useState("");
   const [exampleIndex, setExampleIndex] = useState(0);
 
-  // Debounced search
+  // Sync local query with prop query when it changes externally
   useEffect(() => {
-    if (localQuery.length === 0) return;
-
-    const timer = setTimeout(() => {
-      if (localQuery !== query && localQuery.trim().length > 0) {
-        onSearch(localQuery.trim());
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [localQuery, query, onSearch]);
+    setLocalQuery(query);
+  }, [query]);
 
   // Animate placeholder with example searches
   useEffect(() => {
