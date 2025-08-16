@@ -214,11 +214,6 @@ export function SearchBar({
               Upload some screenshots first to start searching
             </p>
           )}
-          {isSearching && (
-            <p className="text-sm text-primary">
-              Analyzing your images with AI...
-            </p>
-          )}
         </motion.div>
       </form>
     </motion.div>

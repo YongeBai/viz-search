@@ -3,7 +3,11 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProcessedImage, AppMode, AppState, UploadProgress } from "@/lib/types";
-import { uploadFileToAPI, analyzeImageAPI, searchImagesAPI } from "@/lib/api";
+import { searchImagesAPI } from "@/lib/api";
+import {
+  processImagesInBatches,
+  BatchProcessResult,
+} from "@/lib/batch-processor";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { ImageGrid } from "@/components/upload/image-grid";
 import { SearchBar } from "@/components/search/search-bar";
@@ -68,87 +72,83 @@ export default function Home() {
       upload_progress: {
         total: images.length,
         completed: 0,
-        current_file: images[0]?.file.name,
+        current_file: `Processing ${images.length} images in batches...`,
         percentage: 0,
       },
     }));
 
-    for (let i = 0; i < images.length; i++) {
-      const image = images[i];
+    // Mark all images as processing initially
+    setState((prev) => ({
+      ...prev,
+      images: prev.images.map((img) =>
+        images.find((newImg) => newImg.id === img.id)
+          ? { ...img, processing_status: "processing" as const }
+          : img,
+      ),
+    }));
 
-      // Update current processing status
+    try {
+      // Process images in parallel batches with progress callback
+      await processImagesInBatches(
+        images,
+        (
+          batchResults: BatchProcessResult[],
+          batchIndex: number,
+          totalBatches: number,
+        ) => {
+          // Update state with batch results
+          setState((prev) => ({
+            ...prev,
+            images: prev.images.map((img) => {
+              const result = batchResults.find((r) => r.image.id === img.id);
+              if (result) {
+                if (result.success) {
+                  return {
+                    ...img,
+                    processing_status: "completed" as const,
+                    gemini_file_uri: result.geminiFileUri,
+                    ocr_text: result.ocrText || "",
+                    image_description: result.imageDescription || "",
+                  };
+                } else {
+                  return {
+                    ...img,
+                    processing_status: "error" as const,
+                    error_message: result.error || "Processing failed",
+                  };
+                }
+              }
+              return img;
+            }),
+            upload_progress: prev.upload_progress
+              ? {
+                  ...prev.upload_progress,
+                  completed: Math.min((batchIndex + 1) * 5, images.length), // Assume batch size of 5
+                  current_file: `Batch ${batchIndex + 1}/${totalBatches} complete`,
+                  percentage: Math.round(
+                    ((batchIndex + 1) / totalBatches) * 100,
+                  ),
+                }
+              : null,
+          }));
+        },
+      );
+    } catch (error) {
+      console.error("Batch processing failed:", error);
+
+      // Mark any remaining processing images as errors
       setState((prev) => ({
         ...prev,
         images: prev.images.map((img) =>
-          img.id === image.id
-            ? { ...img, processing_status: "processing" as const }
+          img.processing_status === "processing"
+            ? {
+                ...img,
+                processing_status: "error" as const,
+                error_message: "Batch processing failed",
+              }
             : img,
         ),
-        upload_progress: prev.upload_progress
-          ? {
-              ...prev.upload_progress,
-              current_file: image.file.name,
-            }
-          : null,
       }));
-
-      try {
-        // Upload image to Gemini Files API
-        const geminiFileUri = await uploadFileToAPI(image.file);
-
-        // Analyze image with Gemini
-        const analysisResult = await analyzeImageAPI(
-          geminiFileUri,
-          image.file.type,
-        );
-
-        setState((prev) => ({
-          ...prev,
-          images: prev.images.map((img) =>
-            img.id === image.id
-              ? {
-                  ...img,
-                  processing_status: "completed" as const,
-                  gemini_file_uri: geminiFileUri,
-                  ocr_text: analysisResult.ocr_text,
-                  image_description: analysisResult.image_description,
-                }
-              : img,
-          ),
-          upload_progress: prev.upload_progress
-            ? {
-                ...prev.upload_progress,
-                completed: i + 1,
-                percentage: Math.round(((i + 1) / images.length) * 100),
-              }
-            : null,
-        }));
-      } catch (error) {
-        console.error(`Error processing image ${image.file.name}:`, error);
-
-        setState((prev) => ({
-          ...prev,
-          images: prev.images.map((img) =>
-            img.id === image.id
-              ? {
-                  ...img,
-                  processing_status: "error" as const,
-                  error_message:
-                    error instanceof Error
-                      ? error.message
-                      : "Processing failed",
-                }
-              : img,
-          ),
-          upload_progress: prev.upload_progress
-            ? {
-                ...prev.upload_progress,
-                completed: i + 1,
-                percentage: Math.round(((i + 1) / images.length) * 100),
-              }
-            : null,
-        }));
-      }
     }
 
     // Clear progress after completion
@@ -322,13 +322,14 @@ export default function Home() {
               </AnimatePresence>
 
               {/* Show uploaded images with processing status - hide when we have 5+ search results */}
-              {state.images.length > 0 && state.search_state.results.length < 5 && (
-                <ImageGrid
-                  images={state.images}
-                  onImageClick={handleImageClick}
-                  searchResults={state.search_state.results}
-                />
-              )}
+              {state.images.length > 0 &&
+                state.search_state.results.length < 5 && (
+                  <ImageGrid
+                    images={state.images}
+                    onImageClick={handleImageClick}
+                    searchResults={state.search_state.results}
+                  />
+                )}
 
               {state.images.length > 0 && (
                 <SearchResults
