@@ -1,103 +1,288 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  ProcessedImage,
+  AppMode,
+  AppState,
+  UploadProgress,
+  SearchState,
+} from "@/lib/types";
+import { FileDropzone } from "@/components/upload/file-dropzone";
+import { ImageGrid } from "@/components/upload/image-grid";
+import { SearchBar } from "@/components/search/search-bar";
+import { SearchResults } from "@/components/search/search-results";
+import { ImageModal } from "@/components/image-modal";
+
+const initialState: AppState = {
+  mode: "upload",
+  images: [],
+  upload_progress: null,
+  search_state: {
+    query: "",
+    results: [],
+    is_searching: false,
+  },
+  selected_image: null,
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [state, setState] = useState<AppState>(initialState);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleModeChange = useCallback((mode: AppMode) => {
+    setState((prev) => ({
+      ...prev,
+      mode,
+      // Clear search results when switching to upload mode
+      search_state:
+        mode === "upload"
+          ? {
+              query: "",
+              results: [],
+              is_searching: false,
+            }
+          : prev.search_state,
+    }));
+  }, []);
+
+  const handleFilesUploaded = useCallback((files: File[]) => {
+    const newImages: ProcessedImage[] = files.map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      preview: URL.createObjectURL(file),
+      ocr_text: "",
+      image_description: "",
+      uploaded_at: new Date(),
+      processing_status: "pending",
+    }));
+
+    setState((prev) => ({
+      ...prev,
+      images: [...prev.images, ...newImages],
+      mode: "search", // Auto-switch to search mode after upload
+    }));
+
+    // Start processing images
+    processImages(newImages);
+  }, []);
+
+  const processImages = async (images: ProcessedImage[]) => {
+    setState((prev) => ({
+      ...prev,
+      upload_progress: {
+        total: images.length,
+        completed: 0,
+        current_file: images[0]?.file.name,
+        percentage: 0,
+      },
+    }));
+
+    // TODO: Implement actual image processing with Gemini API
+    // For now, simulate processing
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+
+      // Update current processing status
+      setState((prev) => ({
+        ...prev,
+        images: prev.images.map((img) =>
+          img.id === image.id
+            ? { ...img, processing_status: "processing" as const }
+            : img,
+        ),
+        upload_progress: prev.upload_progress
+          ? {
+              ...prev.upload_progress,
+              current_file: image.file.name,
+            }
+          : null,
+      }));
+
+      // Simulate processing delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Mock OCR and description (replace with actual Gemini API calls)
+      const mockOcrText = `Sample OCR text for ${image.file.name}`;
+      const mockDescription = `A screenshot showing various UI elements and text content from ${image.file.name}`;
+
+      setState((prev) => ({
+        ...prev,
+        images: prev.images.map((img) =>
+          img.id === image.id
+            ? {
+                ...img,
+                processing_status: "completed" as const,
+                ocr_text: mockOcrText,
+                image_description: mockDescription,
+              }
+            : img,
+        ),
+        upload_progress: prev.upload_progress
+          ? {
+              ...prev.upload_progress,
+              completed: i + 1,
+              percentage: Math.round(((i + 1) / images.length) * 100),
+            }
+          : null,
+      }));
+    }
+
+    // Clear progress after completion
+    setTimeout(() => {
+      setState((prev) => ({ ...prev, upload_progress: null }));
+    }, 1000);
+  };
+
+  const handleSearch = useCallback(
+    async (query: string) => {
+      setState((prev) => ({
+        ...prev,
+        search_state: {
+          ...prev.search_state,
+          query,
+          is_searching: true,
+        },
+      }));
+
+      // TODO: Implement actual search with Gemini API
+      // For now, simulate search
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Mock search results
+      const mockResults = state.images
+        .filter((img) => img.processing_status === "completed")
+        .slice(0, 5)
+        .map((img, index) => ({
+          image_id: img.id,
+          similarity_score: Math.random() * 0.5 + 0.5, // 0.5-1.0 range
+        }))
+        .sort((a, b) => b.similarity_score - a.similarity_score);
+
+      setState((prev) => ({
+        ...prev,
+        search_state: {
+          ...prev.search_state,
+          results: mockResults,
+          is_searching: false,
+          last_search_time: new Date(),
+        },
+      }));
+    },
+    [state.images],
+  );
+
+  const handleImageClick = useCallback((image: ProcessedImage) => {
+    setState((prev) => ({ ...prev, selected_image: image }));
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setState((prev) => ({ ...prev, selected_image: null }));
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            Visual Memory Search
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Search your screenshot history using natural language queries
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        {/* Mode Toggle */}
+        <Tabs
+          value={state.mode}
+          onValueChange={(value) => handleModeChange(value as AppMode)}
+          className="w-full"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="upload" className="text-lg py-3">
+              Upload
+            </TabsTrigger>
+            <TabsTrigger value="search" className="text-lg py-3">
+              Search
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Upload Mode */}
+          <TabsContent value="upload" className="space-y-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="upload"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <FileDropzone
+                  onFilesUploaded={handleFilesUploaded}
+                  uploadProgress={state.upload_progress}
+                />
+              </motion.div>
+            </AnimatePresence>
+
+            {state.images.length > 0 && (
+              <ImageGrid
+                images={state.images}
+                onImageClick={handleImageClick}
+                searchResults={[]}
+              />
+            )}
+          </TabsContent>
+
+          {/* Search Mode */}
+          <TabsContent value="search" className="space-y-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="search"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SearchBar
+                  query={state.search_state.query}
+                  onSearch={handleSearch}
+                  isSearching={state.search_state.is_searching}
+                  disabled={
+                    state.images.filter(
+                      (img) => img.processing_status === "completed",
+                    ).length === 0
+                  }
+                />
+              </motion.div>
+            </AnimatePresence>
+
+            {state.images.length > 0 && (
+              <SearchResults
+                images={state.images}
+                searchResults={state.search_state.results}
+                onImageClick={handleImageClick}
+                hasSearched={state.search_state.query.length > 0}
+              />
+            )}
+
+            {state.images.length === 0 && (
+              <div className="text-center py-16 text-muted-foreground">
+                <p className="text-xl mb-4">No images uploaded yet</p>
+                <p>Switch to Upload mode to add some screenshots first</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Image Modal */}
+        <ImageModal
+          image={state.selected_image}
+          isOpen={state.selected_image !== null}
+          onClose={handleCloseModal}
+        />
+      </div>
     </div>
   );
 }
