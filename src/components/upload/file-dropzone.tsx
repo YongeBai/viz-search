@@ -53,6 +53,7 @@ export function FileDropzone({
       onDropAccepted: () => setIsDragActive(false),
       onDropRejected: () => setIsDragActive(false),
       maxSize: 50 * 1024 * 1024, // 50MB per file
+      noClick: true, // Disable click to prevent conflict with folder button
     });
 
   const getDropzoneStyles = () => {
@@ -125,10 +126,7 @@ export function FileDropzone({
 
   return (
     <div className="space-y-6">
-      <div
-        {...getRootProps()}
-        className={getDropzoneStyles()}
-      >
+      <div {...getRootProps()} className={getDropzoneStyles()}>
         <input {...getInputProps()} />
 
         <div className="p-12 text-center">
@@ -141,13 +139,13 @@ export function FileDropzone({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-4"
               >
-                <Upload className="w-16 h-16 text-primary mx-auto" />
+                <FolderOpen className="w-16 h-16 text-primary mx-auto" />
                 <div>
                   <h3 className="text-2xl font-semibold text-primary">
-                    Drop your screenshots here
+                    Drop your folder here
                   </h3>
                   <p className="text-muted-foreground mt-2">
-                    Release to upload your images
+                    Release to upload all images from the folder
                   </p>
                 </div>
               </motion.div>
@@ -159,46 +157,40 @@ export function FileDropzone({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <FileImage className="w-16 h-16 text-muted-foreground mx-auto" />
+                <FolderOpen className="w-16 h-16 text-muted-foreground mx-auto" />
 
                 <div className="space-y-2">
                   <h3 className="text-2xl font-semibold">
                     Upload Your Screenshots
                   </h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
-                    Drag and drop image files here, or click to select files
-                    from your computer
+                    Drag and drop a folder containing images here, or click to
+                    select a folder from your computer
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                  <Button size="lg" className="min-w-[200px]">
-                    <Upload className="w-5 h-5 mr-2" />
-                    Choose Files
-                  </Button>
-
-                  <div className="text-sm text-muted-foreground">or</div>
-
+                <div className="flex justify-center">
                   <div>
                     <input
                       type="file"
                       id="folder-upload"
                       multiple
-                      {...({ webkitdirectory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
+                      {...({
+                        webkitdirectory: "",
+                      } as React.InputHTMLAttributes<HTMLInputElement>)}
                       onChange={handleFolderUpload}
                       className="hidden"
                       accept="image/*"
                     />
                     <Button
                       size="lg"
-                      variant="outline"
                       onClick={() =>
                         document.getElementById("folder-upload")?.click()
                       }
                       className="min-w-[200px]"
                     >
                       <FolderOpen className="w-5 h-5 mr-2" />
-                      Upload Folder
+                      Choose Folder
                     </Button>
                   </div>
                 </div>

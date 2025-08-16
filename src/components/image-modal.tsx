@@ -5,22 +5,20 @@ import {
   X,
   Copy,
   Download,
-  Eye,
   FileText,
   Sparkles,
   Check,
-  Loader2,
+  ChevronUp,
+  ChevronDown,
+  Info,
 } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ProcessedImage } from "@/lib/types";
 
 interface ImageModalProps {
@@ -33,7 +31,7 @@ export function ImageModal({ image, isOpen, onClose }: ImageModalProps) {
   const [copiedText, setCopiedText] = useState<"ocr" | "description" | null>(
     null,
   );
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
 
   if (!image) return null;
 
@@ -64,234 +62,173 @@ export function ImageModal({ image, isOpen, onClose }: ImageModalProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getStatusColor = (status: ProcessedImage["processing_status"]) => {
-    switch (status) {
-      case "completed":
-        return "bg-green-500";
-      case "processing":
-        return "bg-yellow-500";
-      case "error":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const getStatusText = (status: ProcessedImage["processing_status"]) => {
-    switch (status) {
-      case "completed":
-        return "Analysis Complete";
-      case "processing":
-        return "Analyzing...";
-      case "error":
-        return "Analysis Failed";
-      default:
-        return "Pending Analysis";
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-full h-[90vh] p-0 overflow-hidden">
-        <div className="flex h-full">
-          {/* Left Side - Image */}
-          <div className="flex-1 relative bg-black/5 flex items-center justify-center">
-            <AnimatePresence mode="wait">
-              {!imageLoaded && (
-                <motion.div
-                  initial={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <Skeleton className="w-full h-full" />
-                </motion.div>
-              )}
-            </AnimatePresence>
+      <DialogContent className="!max-w-none !max-h-none !w-screen !h-screen !p-0 overflow-hidden bg-black/95 !border-0 !rounded-none !translate-x-[-50%] !translate-y-[-50%] !top-[50%] !left-[50%]" showCloseButton={false}>
+        <DialogTitle className="sr-only">
+          {image.file.name}
+        </DialogTitle>
+        {/* Full screen image */}
+        <div className="relative w-full h-full flex items-center justify-center p-4">
+          <img
+            src={image.preview}
+            alt={image.file.name}
+            className="max-w-full max-h-full object-contain"
+            style={{ 
+              imageRendering: 'auto',
+              maxWidth: 'none',
+              maxHeight: 'none',
+              width: 'auto',
+              height: 'auto'
+            }}
+            onLoad={(e) => {
+              const img = e.target as HTMLImageElement;
+              const container = img.parentElement;
+              if (container) {
+                const containerRect = container.getBoundingClientRect();
+                const imgAspectRatio = img.naturalWidth / img.naturalHeight;
+                const containerAspectRatio = containerRect.width / containerRect.height;
+                
+                if (imgAspectRatio > containerAspectRatio) {
+                  // Image is wider - fit to width
+                  img.style.width = Math.min(img.naturalWidth, containerRect.width * 0.9) + 'px';
+                  img.style.height = 'auto';
+                } else {
+                  // Image is taller - fit to height
+                  img.style.height = Math.min(img.naturalHeight, containerRect.height * 0.9) + 'px';
+                  img.style.width = 'auto';
+                }
+              }
+            }}
+          />
 
-            <motion.img
-              src={image.preview}
-              alt="Screenshot preview"
-              className={`max-w-full max-h-full object-contain transition-opacity duration-300 ${
-                imageLoaded ? "opacity-100" : "opacity-0"
-              }`}
-              onLoad={() => setImageLoaded(true)}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: imageLoaded ? 1 : 0 }}
-              transition={{ duration: 0.3 }}
-            />
-
-            {/* Image Controls */}
-            <div className="absolute top-4 left-4 flex gap-2">
+          {/* Top controls */}
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+            <div className="flex gap-2">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleDownload}
-                className="bg-black/20 backdrop-blur-sm hover:bg-black/30 text-white border-white/20"
+                className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-white/20"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Download
+                <Download className="w-4 h-4" />
               </Button>
             </div>
 
-            {/* Processing Status */}
-            <div className="absolute top-4 right-4">
-              <Badge
-                variant="secondary"
-                className="bg-black/20 backdrop-blur-sm text-white border-white/20"
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={onClose}
+              className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-white/20"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Collapsible overlay */}
+          <AnimatePresence>
+            {showOverlay && (
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t max-h-[50vh] overflow-y-auto"
               >
-                <div
-                  className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(image.processing_status)}`}
-                />
-                {getStatusText(image.processing_status)}
-                {image.processing_status === "processing" && (
-                  <Loader2 className="w-3 h-3 ml-2 animate-spin" />
-                )}
-              </Badge>
-            </div>
-          </div>
-
-          {/* Right Side - Metadata */}
-          <div className="w-96 border-l bg-background flex flex-col">
-            {/* Header */}
-            <DialogHeader className="px-6 py-4 border-b">
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-lg font-semibold truncate">
-                  {image.file.name}
-                </DialogTitle>
-                <Button variant="ghost" size="sm" onClick={onClose}>
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </DialogHeader>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-              {/* File Information */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Eye className="w-4 h-4" />
-                  File Information
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Size:</span>
-                    <span>{formatFileSize(image.file.size)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span>{image.file.type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Uploaded:</span>
-                    <span>{image.uploaded_at.toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* OCR Text */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <FileText className="w-4 h-4" />
-                    Extracted Text
-                  </div>
-                  {image.ocr_text && (
+                <div className="p-6 space-y-4">
+                  {/* File info */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg">{image.file.name}</h3>
+                      <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                        <span>Size: {formatFileSize(image.file.size)}</span>
+                        <span>Type: {image.file.type}</span>
+                        <span>Uploaded: {image.uploaded_at.toLocaleDateString()}</span>
+                      </div>
+                    </div>
                     <Button
                       variant="ghost"
-                      size="sm"
-                      onClick={() => handleCopyText(image.ocr_text, "ocr")}
-                      disabled={copiedText === "ocr"}
+                      size="icon"
+                      onClick={() => setShowOverlay(false)}
+                      className="hover:bg-muted"
                     >
-                      {copiedText === "ocr" ? (
-                        <Check className="w-3 h-3" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
-                      )}
+                      <ChevronDown className="w-4 h-4" />
                     </Button>
-                  )}
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                  {image.processing_status === "processing" ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Extracting text from image...
-                    </div>
-                  ) : image.processing_status === "error" ? (
-                    <div className="text-red-500">
-                      {image.error_message || "Failed to extract text"}
-                    </div>
-                  ) : image.ocr_text ? (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="whitespace-pre-wrap"
-                    >
-                      {image.ocr_text}
-                    </motion.p>
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      No text found in this image
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Visual Description */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Sparkles className="w-4 h-4" />
-                    AI Description
                   </div>
-                  {image.image_description && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        handleCopyText(image.image_description, "description")
-                      }
-                      disabled={copiedText === "description"}
-                    >
-                      {copiedText === "description" ? (
-                        <Check className="w-3 h-3" />
-                      ) : (
-                        <Copy className="w-3 h-3" />
+
+                  {/* Extracted Text */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Extracted Text
+                      </h4>
+                      {image.ocr_text && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyText(image.ocr_text, "ocr")}
+                        >
+                          {copiedText === "ocr" ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </Button>
                       )}
-                    </Button>
-                  )}
-                </div>
-
-                <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                  {image.processing_status === "processing" ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating visual description...
                     </div>
-                  ) : image.processing_status === "error" ? (
-                    <div className="text-red-500">
-                      {image.error_message || "Failed to generate description"}
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm max-h-32 overflow-y-auto">
+                      {image.ocr_text || (
+                        <span className="text-muted-foreground italic">No text found</span>
+                      )}
                     </div>
-                  ) : image.image_description ? (
-                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                      {image.image_description}
-                    </motion.p>
-                  ) : (
-                    <p className="text-muted-foreground italic">
-                      No description available
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+                  </div>
 
-            {/* Footer */}
-            <div className="px-6 py-4 border-t bg-muted/20">
-              <p className="text-xs text-muted-foreground text-center">
-                Analysis powered by Google Gemini AI
-              </p>
-            </div>
-          </div>
+                  {/* AI Description */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        AI Description
+                      </h4>
+                      {image.image_description && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyText(image.image_description, "description")}
+                        >
+                          {copiedText === "description" ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-3 text-sm max-h-32 overflow-y-auto">
+                      {image.image_description || (
+                        <span className="text-muted-foreground italic">No description available</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Toggle overlay button */}
+          {!showOverlay && (
+            <motion.button
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              onClick={() => setShowOverlay(true)}
+              className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 rounded-full px-4 py-2 flex items-center gap-2 text-sm transition-colors"
+            >
+              <Info className="w-4 h-4" />
+              Show Details
+              <ChevronUp className="w-4 h-4" />
+            </motion.button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

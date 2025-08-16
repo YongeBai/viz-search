@@ -2,12 +2,8 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ProcessedImage,
-  AppMode,
-  AppState,
-  UploadProgress,
-} from "@/lib/types";
+import { ProcessedImage, AppMode, AppState, UploadProgress } from "@/lib/types";
+import { uploadFileToAPI, analyzeImageAPI, searchImagesAPI } from "@/lib/api";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { ImageGrid } from "@/components/upload/image-grid";
 import { SearchBar } from "@/components/search/search-bar";
@@ -77,8 +73,6 @@ export default function Home() {
       },
     }));
 
-    // TODO: Implement actual image processing with Gemini API
-    // For now, simulate processing
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
 
@@ -98,33 +92,63 @@ export default function Home() {
           : null,
       }));
 
-      // Simulate processing delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      try {
+        // Upload image to Gemini Files API
+        const geminiFileUri = await uploadFileToAPI(image.file);
 
-      // Mock OCR and description (replace with actual Gemini API calls)
-      const mockOcrText = `Sample OCR text for ${image.file.name}`;
-      const mockDescription = `A screenshot showing various UI elements and text content from ${image.file.name}`;
+        // Analyze image with Gemini
+        const analysisResult = await analyzeImageAPI(
+          geminiFileUri,
+          image.file.type,
+        );
 
-      setState((prev) => ({
-        ...prev,
-        images: prev.images.map((img) =>
-          img.id === image.id
+        setState((prev) => ({
+          ...prev,
+          images: prev.images.map((img) =>
+            img.id === image.id
+              ? {
+                  ...img,
+                  processing_status: "completed" as const,
+                  gemini_file_uri: geminiFileUri,
+                  ocr_text: analysisResult.ocr_text,
+                  image_description: analysisResult.image_description,
+                }
+              : img,
+          ),
+          upload_progress: prev.upload_progress
             ? {
-                ...img,
-                processing_status: "completed" as const,
-                ocr_text: mockOcrText,
-                image_description: mockDescription,
+                ...prev.upload_progress,
+                completed: i + 1,
+                percentage: Math.round(((i + 1) / images.length) * 100),
               }
-            : img,
-        ),
-        upload_progress: prev.upload_progress
-          ? {
-              ...prev.upload_progress,
-              completed: i + 1,
-              percentage: Math.round(((i + 1) / images.length) * 100),
-            }
-          : null,
-      }));
+            : null,
+        }));
+      } catch (error) {
+        console.error(`Error processing image ${image.file.name}:`, error);
+
+        setState((prev) => ({
+          ...prev,
+          images: prev.images.map((img) =>
+            img.id === image.id
+              ? {
+                  ...img,
+                  processing_status: "error" as const,
+                  error_message:
+                    error instanceof Error
+                      ? error.message
+                      : "Processing failed",
+                }
+              : img,
+          ),
+          upload_progress: prev.upload_progress
+            ? {
+                ...prev.upload_progress,
+                completed: i + 1,
+                percentage: Math.round(((i + 1) / images.length) * 100),
+              }
+            : null,
+        }));
+      }
     }
 
     // Clear progress after completion
@@ -144,29 +168,56 @@ export default function Home() {
         },
       }));
 
-      // TODO: Implement actual search with Gemini API
-      // For now, simulate search
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      try {
+        // Get completed images for search
+        const completedImages = state.images.filter(
+          (img) => img.processing_status === "completed",
+        );
 
-      // Mock search results
-      const mockResults = state.images
-        .filter((img) => img.processing_status === "completed")
-        .slice(0, 5)
-        .map((img, index) => ({
-          image_id: img.id,
-          similarity_score: Math.random() * 0.5 + 0.5, // 0.5-1.0 range
-        }))
-        .sort((a, b) => b.similarity_score - a.similarity_score);
+        if (completedImages.length === 0) {
+          setState((prev) => ({
+            ...prev,
+            search_state: {
+              ...prev.search_state,
+              results: [],
+              is_searching: false,
+              last_search_time: new Date(),
+            },
+          }));
+          return;
+        }
 
-      setState((prev) => ({
-        ...prev,
-        search_state: {
-          ...prev.search_state,
-          results: mockResults,
-          is_searching: false,
-          last_search_time: new Date(),
-        },
-      }));
+        // Use Gemini search API
+        const searchResponse = await searchImagesAPI(query, completedImages);
+
+        // Convert Gemini response to SearchResult format
+        const searchResults = searchResponse.similarities.map((similarity) => ({
+          image_id: similarity.image_id,
+          similarity_score: similarity.score,
+        }));
+
+        setState((prev) => ({
+          ...prev,
+          search_state: {
+            ...prev.search_state,
+            results: searchResults,
+            is_searching: false,
+            last_search_time: new Date(),
+          },
+        }));
+      } catch (error) {
+        console.error("Error during search:", error);
+
+        setState((prev) => ({
+          ...prev,
+          search_state: {
+            ...prev.search_state,
+            results: [],
+            is_searching: false,
+            last_search_time: new Date(),
+          },
+        }));
+      }
     },
     [state.images],
   );
@@ -185,7 +236,7 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold tracking-tight mb-2">
-            Visual Memory Search
+            The Entire History of You
           </h1>
           <p className="text-muted-foreground text-lg">
             Search your screenshot history using natural language queries
@@ -221,70 +272,70 @@ export default function Home() {
           {/* Upload Mode */}
           {state.mode === "upload" && (
             <div className="space-y-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key="upload"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <FileDropzone
-                  onFilesUploaded={handleFilesUploaded}
-                  uploadProgress={state.upload_progress}
-                />
-              </motion.div>
-            </AnimatePresence>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="upload"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <FileDropzone
+                    onFilesUploaded={handleFilesUploaded}
+                    uploadProgress={state.upload_progress}
+                  />
+                </motion.div>
+              </AnimatePresence>
 
-            {state.images.length > 0 && (
-              <ImageGrid
-                images={state.images}
-                onImageClick={handleImageClick}
-                searchResults={[]}
-              />
-            )}
+              {state.images.length > 0 && (
+                <ImageGrid
+                  images={state.images}
+                  onImageClick={handleImageClick}
+                  searchResults={[]}
+                />
+              )}
             </div>
           )}
 
           {/* Search Mode */}
           {state.mode === "search" && (
             <div className="space-y-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key="search"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <SearchBar
-                  query={state.search_state.query}
-                  onSearch={handleSearch}
-                  isSearching={state.search_state.is_searching}
-                  disabled={
-                    state.images.filter(
-                      (img) => img.processing_status === "completed",
-                    ).length === 0
-                  }
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="search"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SearchBar
+                    query={state.search_state.query}
+                    onSearch={handleSearch}
+                    isSearching={state.search_state.is_searching}
+                    disabled={
+                      state.images.filter(
+                        (img) => img.processing_status === "completed",
+                      ).length === 0
+                    }
+                  />
+                </motion.div>
+              </AnimatePresence>
+
+              {state.images.length > 0 && (
+                <SearchResults
+                  images={state.images}
+                  searchResults={state.search_state.results}
+                  onImageClick={handleImageClick}
+                  hasSearched={state.search_state.query.length > 0}
                 />
-              </motion.div>
-            </AnimatePresence>
+              )}
 
-            {state.images.length > 0 && (
-              <SearchResults
-                images={state.images}
-                searchResults={state.search_state.results}
-                onImageClick={handleImageClick}
-                hasSearched={state.search_state.query.length > 0}
-              />
-            )}
-
-            {state.images.length === 0 && (
-              <div className="text-center py-16 text-muted-foreground">
-                <p className="text-xl mb-4">No images uploaded yet</p>
-                <p>Switch to Upload mode to add some screenshots first</p>
-              </div>
-            )}
+              {state.images.length === 0 && (
+                <div className="text-center py-16 text-muted-foreground">
+                  <p className="text-xl mb-4">No images uploaded yet</p>
+                  <p>Switch to Upload mode to add some screenshots first</p>
+                </div>
+              )}
             </div>
           )}
         </div>
