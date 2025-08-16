@@ -98,121 +98,152 @@ export function SearchBar({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-3xl mx-auto"
+      className="w-full max-w-4xl mx-auto"
     >
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative group">
-          {/* Search Icon */}
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-            {isSearching ? (
-              <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
-            ) : (
-              <Search className="w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            )}
-          </div>
+          {/* Premium Search Container */}
+          <div className="glass-strong rounded-2xl p-1 neural-glow group-focus-within:neural-glow-strong transition-all duration-500">
+            {/* Search Icon */}
+            <div className="absolute left-6 top-1/2 -translate-y-1/2 z-10">
+              {isSearching ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="w-6 h-6 text-primary" />
+                </motion.div>
+              ) : (
+                <Search className="w-6 h-6 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
+              )}
+            </div>
 
-          {/* Input Field */}
-          <Input
-            type="text"
-            value={localQuery}
-            onChange={handleInputChange}
-            placeholder={placeholder}
-            disabled={disabled || isSearching}
-            className="pl-12 pr-32 py-6 text-lg bg-background border-2 focus:border-primary transition-all duration-200 disabled:opacity-60"
-          />
+            {/* Input Field */}
+            <Input
+              type="text"
+              value={localQuery}
+              onChange={handleInputChange}
+              placeholder={placeholder}
+              disabled={disabled || isSearching}
+              className="pl-16 pr-48 py-8 text-xl bg-transparent border-0 focus:border-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:opacity-60 placeholder:text-muted-foreground/60"
+            />
 
-          {/* AI Indicator */}
-          <div className="absolute right-20 top-1/2 -translate-y-1/2">
-            <motion.div
-              animate={{
-                scale: isSearching ? [1, 1.2, 1] : 1,
-                opacity: disabled ? 0.3 : 1,
-              }}
-              transition={{
-                repeat: isSearching ? Infinity : 0,
-                duration: 1.5,
-              }}
-              className="flex items-center gap-1 text-xs text-muted-foreground"
-            >
-              <Sparkles className="w-3 h-3" />
-              <span className="hidden sm:inline">AI Search</span>
-            </motion.div>
-          </div>
-
-          {/* Search/Clear Button */}
-          <div className="absolute right-2 top-1/2 -translate-y-1/2">
-            {localQuery.length > 0 ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleClear}
-                disabled={isSearching}
-                className="h-8 px-3 text-muted-foreground hover:text-foreground"
+            {/* Enhanced AI Indicator */}
+            <div className="absolute right-32 top-1/2 -translate-y-1/2">
+              <motion.div
+                animate={{
+                  scale: isSearching ? [1, 1.1, 1] : 1,
+                  opacity: disabled ? 0.3 : 1,
+                }}
+                transition={{
+                  repeat: isSearching ? Infinity : 0,
+                  duration: 2,
+                }}
+                className="glass rounded-xl px-4 py-2 neural-glow"
               >
-                Clear
-              </Button>
-            ) : (
-              <Button
-                type="submit"
-                size="sm"
-                disabled={
-                  disabled || isSearching || localQuery.trim().length === 0
-                }
-                className="h-8 px-4"
-              >
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
-              </Button>
-            )}
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <motion.div
+                    animate={{
+                      rotate: isSearching ? 360 : 0,
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: isSearching ? Infinity : 0,
+                      ease: "linear",
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </motion.div>
+                  <span className="gradient-text">AI Search</span>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Search/Clear Button */}
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              {localQuery.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="lg"
+                  onClick={handleClear}
+                  disabled={isSearching}
+                  className="h-12 px-6 text-muted-foreground hover:text-foreground rounded-xl transition-all duration-300"
+                >
+                  Clear
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={
+                    disabled || isSearching || localQuery.trim().length === 0
+                  }
+                  className="h-12 px-6 neural-glow hover:neural-glow-strong transition-all duration-300 rounded-xl"
+                >
+                  {isSearching ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Search className="w-5 h-5" />
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Search Suggestions */}
+        {/* Enhanced Search Suggestions */}
         {!disabled && localQuery.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="mt-4 flex flex-wrap gap-2 justify-center"
+            className="mt-8 space-y-4"
           >
-            <div className="text-xs text-muted-foreground mb-2 w-full text-center">
-              Try searching for:
+            <div className="text-center">
+              <p className="text-sm text-muted-foreground mb-4">
+                Try searching for:
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center max-w-2xl mx-auto">
+                {SEARCH_EXAMPLES.slice(0, 4).map((example, index) => (
+                  <motion.button
+                    key={example}
+                    type="button"
+                    onClick={() => {
+                      setLocalQuery(example);
+                      onSearch(example);
+                    }}
+                    className="glass rounded-2xl px-6 py-3 text-sm text-muted-foreground hover:text-foreground hover:neural-glow transition-all duration-300 border border-transparent hover:border-primary/20"
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                  >
+                    &quot;{example}&quot;
+                  </motion.button>
+                ))}
+              </div>
             </div>
-            {SEARCH_EXAMPLES.slice(0, 4).map((example, index) => (
-              <motion.button
-                key={example}
-                type="button"
-                onClick={() => {
-                  setLocalQuery(example);
-                  onSearch(example);
-                }}
-                className="px-3 py-1 text-xs bg-muted hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground rounded-full border transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-              >
-                &quot;{example}&quot;
-              </motion.button>
-            ))}
           </motion.div>
         )}
 
-        {/* Status Messages */}
+        {/* Enhanced Status Messages */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mt-2 min-h-[20px] text-center"
+          className="mt-6 min-h-[40px] text-center"
         >
           {disabled && (
-            <p className="text-sm text-muted-foreground">
-              Upload some screenshots first to start searching
-            </p>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass rounded-xl px-6 py-3 inline-block"
+            >
+              <p className="text-sm text-muted-foreground">
+                Upload some screenshots first to start searching
+              </p>
+            </motion.div>
           )}
         </motion.div>
       </form>

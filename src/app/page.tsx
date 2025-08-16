@@ -13,6 +13,7 @@ import { ImageGrid } from "@/components/upload/image-grid";
 import { SearchBar } from "@/components/search/search-bar";
 import { SearchResults } from "@/components/search/search-results";
 import { ImageModal } from "@/components/image-modal";
+import { HeroSection } from "@/components/hero-section";
 
 const initialState: AppState = {
   mode: "upload",
@@ -232,40 +233,53 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">
-            The Entire History of You
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Search your screenshot history using natural language queries
-          </p>
-        </div>
+      {/* Hero Section - only show when no images or in upload mode */}
+      {(state.images.length === 0 || state.mode === "upload") && (
+        <HeroSection hasImages={state.images.length > 0} />
+      )}
 
-        {/* Mode Toggle */}
-        <div className="inline-flex h-12 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full mb-8">
-          <button
-            onClick={() => handleModeChange("upload")}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 ${
-              state.mode === "upload"
-                ? "bg-background text-foreground shadow-sm"
-                : "hover:bg-background/50 hover:text-foreground"
-            }`}
-          >
-            Upload
-          </button>
-          <button
-            onClick={() => handleModeChange("search")}
-            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 ${
-              state.mode === "search"
-                ? "bg-background text-foreground shadow-sm"
-                : "hover:bg-background/50 hover:text-foreground"
-            }`}
-          >
-            Search
-          </button>
-        </div>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Compact Header for when we have images and are in search mode */}
+        {state.images.length > 0 && state.mode === "search" && (
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-bold tracking-tight mb-2 gradient-text">
+              The Entire History of You
+            </h1>
+            <p className="text-muted-foreground">
+              {state.images.length} images ready to search
+            </p>
+          </div>
+        )}
+
+        {/* Smart Navigation - only show toggle when we have images */}
+        {state.images.length > 0 && (
+          <div className="flex justify-center mb-8">
+            <div className="glass rounded-2xl p-2">
+              <div className="inline-flex items-center gap-2">
+                <button
+                  onClick={() => handleModeChange("upload")}
+                  className={`inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                    state.mode === "upload"
+                      ? "bg-primary text-primary-foreground shadow-lg neural-glow"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                >
+                  Upload More
+                </button>
+                <button
+                  onClick={() => handleModeChange("search")}
+                  className={`inline-flex items-center justify-center px-6 py-3 text-sm font-medium rounded-xl transition-all duration-300 ${
+                    state.mode === "search"
+                      ? "bg-primary text-primary-foreground shadow-lg neural-glow"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                >
+                  Search Images
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content based on mode */}
         <div className="w-full">

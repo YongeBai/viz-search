@@ -29,26 +29,53 @@ export function SearchResults({
   // No search performed yet
   if (!hasSearched) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-12">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-16"
+          className="text-center py-20"
         >
-          <Target className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <h3 className="text-2xl font-semibold mb-2">Ready to Search</h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <motion.div
+            animate={{
+              scale: [1, 1.05, 1],
+              rotate: [0, 2, -2, 0],
+            }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="mb-8"
+          >
+            <div className="glass-strong p-8 rounded-2xl neural-glow inline-block">
+              <Target className="w-20 h-20 mx-auto text-primary" />
+            </div>
+          </motion.div>
+          <h3 className="text-3xl font-bold gradient-text mb-4">
+            Ready to Search
+          </h3>
+          <p className="text-lg text-muted-foreground max-w-lg mx-auto">
             Use the search bar above to find specific screenshots using natural
             language. Try describing what you&apos;re looking for!
           </p>
         </motion.div>
 
-        {/* Show all images in grid format */}
-        <ImageGrid
-          images={completedImages}
-          onImageClick={onImageClick}
-          searchResults={[]}
-        />
+        {/* Show all images in enhanced grid format */}
+        <div className="glass rounded-2xl p-6">
+          <div className="mb-6 text-center">
+            <h4 className="text-xl font-semibold mb-2">
+              Your Screenshot Collection
+            </h4>
+            <p className="text-muted-foreground">
+              {completedImages.length} images processed and ready to search
+            </p>
+          </div>
+          <ImageGrid
+            images={completedImages}
+            onImageClick={onImageClick}
+            searchResults={[]}
+          />
+        </div>
       </div>
     );
   }
@@ -59,14 +86,37 @@ export function SearchResults({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-16"
+        className="text-center py-20"
       >
-        <SearchX className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-2xl font-semibold mb-2">No matches found</h3>
-        <p className="text-muted-foreground max-w-md mx-auto">
+        <motion.div
+          animate={{
+            y: [0, -10, 0],
+            rotate: [0, 3, -3, 0],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="mb-8"
+        >
+          <div className="glass-strong p-8 rounded-2xl inline-block">
+            <SearchX className="w-20 h-20 mx-auto text-muted-foreground" />
+          </div>
+        </motion.div>
+        <h3 className="text-3xl font-bold gradient-text mb-4">
+          No matches found
+        </h3>
+        <p className="text-lg text-muted-foreground max-w-lg mx-auto mb-8">
           Try adjusting your search terms or describing the content differently.
           AI search works best with descriptive phrases.
         </p>
+        <div className="glass rounded-xl px-6 py-4 inline-block">
+          <p className="text-sm text-muted-foreground">
+            💡 Try being more specific about colors, UI elements, or text
+            content
+          </p>
+        </div>
       </motion.div>
     );
   }
@@ -172,15 +222,20 @@ export function SearchResults({
           </div>
           <div className="text-sm text-blue-600/80 dark:text-blue-400/80 space-y-1">
             <div>
-              • Try describing visual elements: &quot;blue button&quot;, &quot;error dialog&quot;,
-              &quot;dark theme&quot;
+              • Try describing visual elements: &quot;blue button&quot;,
+              &quot;error dialog&quot;, &quot;dark theme&quot;
             </div>
             <div>
-              • Include text content: &quot;login form&quot;, &quot;dashboard&quot;, &quot;settings page&quot;
+              • Include text content: &quot;login form&quot;,
+              &quot;dashboard&quot;, &quot;settings page&quot;
             </div>
-            <div>• Be specific: &quot;mobile app with navigation&quot; vs just &quot;app&quot;</div>
             <div>
-              • Combine concepts: &quot;code editor showing JavaScript errors&quot;
+              • Be specific: &quot;mobile app with navigation&quot; vs just
+              &quot;app&quot;
+            </div>
+            <div>
+              • Combine concepts: &quot;code editor showing JavaScript
+              errors&quot;
             </div>
           </div>
         </motion.div>

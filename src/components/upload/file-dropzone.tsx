@@ -64,18 +64,18 @@ export function FileDropzone({
 
   const getDropzoneStyles = () => {
     const baseClasses =
-      "border-2 border-dashed rounded-lg transition-all duration-300 cursor-pointer";
+      "border-2 border-dashed rounded-2xl transition-all duration-500 cursor-pointer backdrop-blur-sm";
 
     if (isDragAccept) {
-      return `${baseClasses} border-green-500 bg-green-500/10`;
+      return `${baseClasses} border-green-500 bg-green-500/10 neural-glow shadow-2xl scale-[1.02]`;
     }
     if (isDragReject) {
-      return `${baseClasses} border-red-500 bg-red-500/10`;
+      return `${baseClasses} border-red-500 bg-red-500/10 shadow-2xl`;
     }
     if (isDragActive) {
-      return `${baseClasses} border-primary bg-primary/10`;
+      return `${baseClasses} border-primary bg-primary/10 neural-glow shadow-2xl scale-[1.02]`;
     }
-    return `${baseClasses} border-border bg-muted/20 hover:border-primary hover:bg-muted/40`;
+    return `${baseClasses} glass border-glass-border hover:border-primary hover:neural-glow hover:scale-[1.01]`;
   };
 
   // Handle folder upload via hidden input
@@ -103,30 +103,52 @@ export function FileDropzone({
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="border-2 border-primary rounded-lg p-8 text-center"
+        className="glass-strong rounded-2xl p-12 text-center neural-glow-strong"
       >
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="flex justify-center">
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="relative"
             >
-              <FileImage className="w-12 h-12 text-primary" />
+              <div className="glass p-6 rounded-2xl neural-glow animate-pulse-glow">
+                <FileImage className="w-16 h-16 text-primary" />
+              </div>
+              <motion.div
+                animate={{
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="absolute -top-2 -right-2"
+              >
+                <div className="w-4 h-4 bg-primary rounded-full" />
+              </motion.div>
             </motion.div>
           </div>
 
-          <div className="space-y-3">
-            <h3 className="text-xl font-semibold">Processing Images</h3>
-            <p className="text-muted-foreground">
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold gradient-text">
+              Processing Images
+            </h3>
+            <p className="text-lg text-muted-foreground">
               Analyzing {uploadProgress.current_file || "images"} with AI...
             </p>
 
-            <div className="space-y-2">
-              <Progress value={uploadProgress.percentage} className="w-full" />
-              <p className="text-sm text-muted-foreground">
-                {uploadProgress.completed} of {uploadProgress.total} images
-                processed ({uploadProgress.percentage}%)
-              </p>
+            <div className="space-y-3">
+              <Progress
+                value={uploadProgress.percentage}
+                className="w-full h-3"
+              />
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {uploadProgress.completed} of {uploadProgress.total} images
+                </span>
+                <span className="text-primary font-semibold">
+                  {uploadProgress.percentage}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -139,22 +161,33 @@ export function FileDropzone({
       <div {...getRootProps()} className={getDropzoneStyles()}>
         <input {...getInputProps()} />
 
-        <div className="p-12 text-center">
+        <div className="p-16 text-center">
           <AnimatePresence mode="wait">
             {isDragActive ? (
               <motion.div
                 key="active"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-4"
+                initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                className="space-y-6"
               >
-                <FolderOpen className="w-16 h-16 text-primary mx-auto" />
-                <div>
-                  <h3 className="text-2xl font-semibold text-primary">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 5, -5, 0],
+                  }}
+                  transition={{ duration: 0.5 }}
+                  className="flex justify-center"
+                >
+                  <div className="glass-strong p-6 rounded-2xl neural-glow-strong">
+                    <FolderOpen className="w-20 h-20 text-primary mx-auto" />
+                  </div>
+                </motion.div>
+                <div className="space-y-3">
+                  <h3 className="text-3xl font-bold gradient-text">
                     Drop your folder here
                   </h3>
-                  <p className="text-muted-foreground mt-2">
+                  <p className="text-lg text-muted-foreground">
                     Release to upload all images from the folder
                   </p>
                 </div>
@@ -165,15 +198,27 @@ export function FileDropzone({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="space-y-6"
+                className="space-y-8"
               >
-                <FolderOpen className="w-16 h-16 text-muted-foreground mx-auto" />
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="flex justify-center"
+                >
+                  <div className="glass p-6 rounded-2xl neural-glow">
+                    <FolderOpen className="w-20 h-20 text-primary mx-auto animate-float" />
+                  </div>
+                </motion.div>
 
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-semibold">
+                <div className="space-y-4">
+                  <h3 className="text-3xl font-bold gradient-text">
                     Upload Your Screenshots
                   </h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
+                  <p className="text-lg text-muted-foreground max-w-lg mx-auto">
                     Drag and drop a folder containing images here, or click to
                     select a folder from your computer
                   </p>
@@ -197,15 +242,15 @@ export function FileDropzone({
                       onClick={() =>
                         document.getElementById("folder-upload")?.click()
                       }
-                      className="min-w-[200px]"
+                      className="min-w-[240px] h-14 text-lg font-semibold neural-glow hover:neural-glow-strong transition-all duration-300"
                     >
-                      <FolderOpen className="w-5 h-5 mr-2" />
+                      <FolderOpen className="w-6 h-6 mr-3" />
                       Choose Folder
                     </Button>
                   </div>
                 </div>
 
-                <div className="text-xs text-muted-foreground">
+                <div className="glass rounded-xl px-6 py-3 text-sm text-muted-foreground inline-block">
                   Supports PNG, JPG, GIF, BMP, WebP, SVG • Max 50MB per file
                 </div>
               </motion.div>
