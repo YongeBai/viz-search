@@ -321,8 +321,8 @@ export default function Home() {
                 </motion.div>
               </AnimatePresence>
 
-              {/* Show uploaded images with processing status */}
-              {state.images.length > 0 && (
+              {/* Show uploaded images with processing status - hide when we have 5+ search results */}
+              {state.images.length > 0 && state.search_state.results.length < 5 && (
                 <ImageGrid
                   images={state.images}
                   onImageClick={handleImageClick}
