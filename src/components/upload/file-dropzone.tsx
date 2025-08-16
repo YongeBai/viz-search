@@ -9,6 +9,12 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { UploadProgress } from "@/lib/types";
 
+// Extend InputHTMLAttributes to include webkitdirectory
+interface ExtendedInputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  webkitdirectory?: string;
+}
+
 interface FileDropzoneProps {
   onFilesUploaded: (files: File[]) => void;
   uploadProgress: UploadProgress | null;
@@ -80,6 +86,10 @@ export function FileDropzone({
 
       if (imageFiles.length > 0) {
         onFilesUploaded(imageFiles);
+        setRejectedFiles([]); // Clear any previous errors
+      } else if (files.length > 0) {
+        setRejectedFiles(["No valid image files found in the selected folder"]);
+        setTimeout(() => setRejectedFiles([]), 5000);
       }
 
       // Reset input
@@ -172,15 +182,15 @@ export function FileDropzone({
                 <div className="flex justify-center">
                   <div>
                     <input
-                      type="file"
-                      id="folder-upload"
-                      multiple
                       {...({
+                        type: "file",
+                        id: "folder-upload",
+                        multiple: true,
                         webkitdirectory: "",
-                      } as React.InputHTMLAttributes<HTMLInputElement>)}
-                      onChange={handleFolderUpload}
-                      className="hidden"
-                      accept="image/*"
+                        onChange: handleFolderUpload,
+                        className: "hidden",
+                        accept: "image/*",
+                      } as ExtendedInputProps)}
                     />
                     <Button
                       size="lg"

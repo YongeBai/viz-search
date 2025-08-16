@@ -51,15 +51,18 @@ export async function analyzeImage(
 1. All visible text in the image (OCR extraction)
 2. A detailed description of what's shown in the image
 
-Please format your response as JSON with the following structure:
+You MUST respond with ONLY valid JSON in this exact format:
 {
   "ocr_text": "All text found in the image, separated by spaces or newlines as appropriate",
   "image_description": "Detailed description of the visual content, objects, people, colors, layout, UI elements, etc."
-}`,
+}
+
+Return ONLY the JSON object, no other text or explanation.`,
       ]),
       config: {
         systemInstruction:
-          "You are an expert at analyzing screenshots and images. Extract text accurately and provide detailed visual descriptions that would help someone search for this image later using natural language queries.",
+          "You are an expert at analyzing screenshots and images. You MUST respond with valid JSON only. Extract text accurately and provide detailed visual descriptions that would help someone search for this image later using natural language queries.",
+        responseMimeType: "application/json",
       },
     });
 
@@ -67,14 +70,48 @@ Please format your response as JSON with the following structure:
 
     // Try to parse JSON response
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      return parsed;
     } catch (parseError) {
-      // Fallback: extract content manually if JSON parsing fails
-      console.warn("Failed to parse JSON response, using fallback extraction");
+      // Enhanced fallback: try to extract JSON from the response
+      console.warn("Failed to parse JSON response, attempting to extract JSON");
+      
+      // Look for JSON object in the response
+      const jsonMatch = text.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return parsed;
+        } catch (secondParseError) {
+          console.warn("Failed to parse extracted JSON, using manual extraction");
+        }
+      }
+      
+      // Manual fallback - try to extract values from JSON-like structure
+      let ocrText = "";
+      let imageDescription = "";
+      
+      // Try to find ocr_text value
+      const ocrMatch = text.match(/"ocr_text"\s*:\s*"([^"]*?)"/);
+      if (ocrMatch) {
+        ocrText = ocrMatch[1];
+      } else {
+        // Fallback to old method
+        ocrText = extractTextBetween(text, "ocr_text", "image_description") || "";
+      }
+      
+      // Try to find image_description value
+      const descMatch = text.match(/"image_description"\s*:\s*"([^"]*?)"/);
+      if (descMatch) {
+        imageDescription = descMatch[1];
+      } else {
+        // Fallback to old method or use entire text
+        imageDescription = extractTextAfter(text, "image_description") || text;
+      }
+      
       return {
-        ocr_text:
-          extractTextBetween(text, "ocr_text", "image_description") || "",
-        image_description: extractTextAfter(text, "image_description") || text,
+        ocr_text: ocrText,
+        image_description: imageDescription,
       };
     }
   } catch (error) {
@@ -118,7 +155,7 @@ Description: ${img.description}
 Please analyze which images best match the search query and return a JSON response with similarity scores (0-1, where 1 is perfect match).
 Consider both the OCR text content AND the visual description when determining matches.
 
-Format your response as:
+You MUST respond with ONLY valid JSON in this exact format:
 {
   "similarities": [
     {
@@ -130,6 +167,7 @@ Format your response as:
 }
 
 Only include images with scores above 0.1, and sort by score descending.
+Return ONLY the JSON object, no other text or explanation.
 `;
 
     const response = await ai.models.generateContent({
@@ -137,16 +175,31 @@ Only include images with scores above 0.1, and sort by score descending.
       contents: prompt,
       config: {
         systemInstruction:
-          "You are an expert at matching natural language queries to image content. Be precise with scoring - only high-confidence matches should get scores above 0.7.",
+          "You are an expert at matching natural language queries to image content. You MUST respond with valid JSON only. Be precise with scoring - only high-confidence matches should get scores above 0.7.",
+        responseMimeType: "application/json",
       },
     });
 
     const text = response.text || "";
 
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      return parsed;
     } catch (parseError) {
-      console.warn("Failed to parse search response, returning empty results");
+      console.warn("Failed to parse search response, attempting to extract JSON");
+      
+      // Try to extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return parsed;
+        } catch (secondParseError) {
+          console.warn("Failed to parse extracted JSON, returning empty results");
+        }
+      }
+      
+      console.warn("No valid JSON found, returning empty results");
       return { similarities: [] };
     }
   } catch (error) {
