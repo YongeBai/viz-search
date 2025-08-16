@@ -205,7 +205,7 @@ export function SearchBar({
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.3 + index * 0.1 }}
               >
-                "{example}"
+                &quot;{example}&quot;
               </motion.button>
             ))}
           </motion.div>

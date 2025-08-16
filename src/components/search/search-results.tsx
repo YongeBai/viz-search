@@ -39,7 +39,7 @@ export function SearchResults({
           <h3 className="text-2xl font-semibold mb-2">Ready to Search</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
             Use the search bar above to find specific screenshots using natural
-            language. Try describing what you're looking for!
+            language. Try describing what you&apos;re looking for!
           </p>
         </motion.div>
 
@@ -172,15 +172,15 @@ export function SearchResults({
           </div>
           <div className="text-sm text-blue-600/80 dark:text-blue-400/80 space-y-1">
             <div>
-              • Try describing visual elements: "blue button", "error dialog",
-              "dark theme"
+              • Try describing visual elements: &quot;blue button&quot;, &quot;error dialog&quot;,
+              &quot;dark theme&quot;
             </div>
             <div>
-              • Include text content: "login form", "dashboard", "settings page"
+              • Include text content: &quot;login form&quot;, &quot;dashboard&quot;, &quot;settings page&quot;
             </div>
-            <div>• Be specific: "mobile app with navigation" vs just "app"</div>
+            <div>• Be specific: &quot;mobile app with navigation&quot; vs just &quot;app&quot;</div>
             <div>
-              • Combine concepts: "code editor showing JavaScript errors"
+              • Combine concepts: &quot;code editor showing JavaScript errors&quot;
             </div>
           </div>
         </motion.div>

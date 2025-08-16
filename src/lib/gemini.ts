@@ -26,7 +26,7 @@ export async function uploadImageToGemini(file: File): Promise<string> {
       file: file,
       config: { mimeType: file.type },
     });
-    return uploadedFile.uri;
+    return uploadedFile.uri || "";
   } catch (error) {
     console.error("Error uploading file to Gemini:", error);
     throw new Error(
@@ -63,7 +63,7 @@ Please format your response as JSON with the following structure:
       },
     });
 
-    const text = response.text;
+    const text = response.text || "";
 
     // Try to parse JSON response
     try {
@@ -141,7 +141,7 @@ Only include images with scores above 0.1, and sort by score descending.
       },
     });
 
-    const text = response.text;
+    const text = response.text || "";
 
     try {
       return JSON.parse(text);

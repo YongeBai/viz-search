@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, FileRejection, FileError } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FolderOpen, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ export function FileDropzone({
   const [rejectedFiles, setRejectedFiles] = useState<string[]>([]);
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], rejectedFileRejections: any[]) => {
+    (acceptedFiles: File[], rejectedFileRejections: FileRejection[]) => {
       if (acceptedFiles.length > 0) {
         onFilesUploaded(acceptedFiles);
         setRejectedFiles([]);
@@ -31,7 +31,7 @@ export function FileDropzone({
       if (rejectedFileRejections.length > 0) {
         const rejected = rejectedFileRejections.map(
           (rejection) =>
-            `${rejection.file.name}: ${rejection.errors.map((e: any) => e.message).join(", ")}`,
+            `${rejection.file.name}: ${rejection.errors.map((e: FileError) => e.message).join(", ")}`,
         );
         setRejectedFiles(rejected);
         // Clear rejected files after 5 seconds
@@ -125,11 +125,9 @@ export function FileDropzone({
 
   return (
     <div className="space-y-6">
-      <motion.div
+      <div
         {...getRootProps()}
         className={getDropzoneStyles()}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.99 }}
       >
         <input {...getInputProps()} />
 
@@ -186,7 +184,7 @@ export function FileDropzone({
                       type="file"
                       id="folder-upload"
                       multiple
-                      webkitdirectory=""
+                      {...({ webkitdirectory: "" } as React.InputHTMLAttributes<HTMLInputElement>)}
                       onChange={handleFolderUpload}
                       className="hidden"
                       accept="image/*"
@@ -212,7 +210,7 @@ export function FileDropzone({
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
 
       {/* Error Messages */}
       <AnimatePresence>

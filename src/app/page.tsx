@@ -2,13 +2,11 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ProcessedImage,
   AppMode,
   AppState,
   UploadProgress,
-  SearchState,
 } from "@/lib/types";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { ImageGrid } from "@/components/upload/image-grid";
@@ -195,22 +193,34 @@ export default function Home() {
         </div>
 
         {/* Mode Toggle */}
-        <Tabs
-          value={state.mode}
-          onValueChange={(value) => handleModeChange(value as AppMode)}
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-2 mb-8">
-            <TabsTrigger value="upload" className="text-lg py-3">
-              Upload
-            </TabsTrigger>
-            <TabsTrigger value="search" className="text-lg py-3">
-              Search
-            </TabsTrigger>
-          </TabsList>
+        <div className="inline-flex h-12 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full mb-8">
+          <button
+            onClick={() => handleModeChange("upload")}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 ${
+              state.mode === "upload"
+                ? "bg-background text-foreground shadow-sm"
+                : "hover:bg-background/50 hover:text-foreground"
+            }`}
+          >
+            Upload
+          </button>
+          <button
+            onClick={() => handleModeChange("search")}
+            className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-lg font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 ${
+              state.mode === "search"
+                ? "bg-background text-foreground shadow-sm"
+                : "hover:bg-background/50 hover:text-foreground"
+            }`}
+          >
+            Search
+          </button>
+        </div>
 
+        {/* Content based on mode */}
+        <div className="w-full">
           {/* Upload Mode */}
-          <TabsContent value="upload" className="space-y-8">
+          {state.mode === "upload" && (
+            <div className="space-y-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key="upload"
@@ -233,10 +243,12 @@ export default function Home() {
                 searchResults={[]}
               />
             )}
-          </TabsContent>
+            </div>
+          )}
 
           {/* Search Mode */}
-          <TabsContent value="search" className="space-y-8">
+          {state.mode === "search" && (
+            <div className="space-y-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key="search"
@@ -273,8 +285,9 @@ export default function Home() {
                 <p>Switch to Upload mode to add some screenshots first</p>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+            </div>
+          )}
+        </div>
 
         {/* Image Modal */}
         <ImageModal
