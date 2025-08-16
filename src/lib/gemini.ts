@@ -9,20 +9,30 @@ import {
   ProcessedImage,
 } from "./types";
 
-if (!process.env.GOOGLE_AI_API_KEY) {
-  throw new Error("GOOGLE_AI_API_KEY environment variable is not set");
-}
+// Remove the immediate check and initialization
+let ai: GoogleGenAI | null = null;
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_AI_API_KEY,
-});
+function getGoogleGenAI() {
+  if (!process.env.GOOGLE_AI_API_KEY) {
+    throw new Error("GOOGLE_AI_API_KEY environment variable is not set");
+  }
+  
+  if (!ai) {
+    ai = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_AI_API_KEY,
+    });
+  }
+  
+  return ai;
+}
 
 /**
  * Upload an image file to Google Files API
  */
 export async function uploadImageToGemini(file: File): Promise<string> {
   try {
-    const uploadedFile = await ai.files.upload({
+    const genAI = getGoogleGenAI(); // Get the instance at runtime
+    const uploadedFile = await genAI.files.upload({
       file: file,
       config: { mimeType: file.type },
     });
@@ -43,7 +53,8 @@ export async function analyzeImage(
   mimeType: string,
 ): Promise<GeminiImageAnalysisResponse> {
   try {
-    const response = await ai.models.generateContent({
+    const genAI = getGoogleGenAI(); // Get the instance at runtime
+    const response = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
       contents: createUserContent([
         createPartFromUri(fileUri, mimeType),
@@ -133,6 +144,7 @@ export async function searchImages(
   images: ProcessedImage[],
 ): Promise<GeminiSearchResponse> {
   try {
+    const genAI = getGoogleGenAI(); // Get the instance at runtime
     const imageData = images.map((img) => ({
       id: img.id,
       ocr_text: img.ocr_text,
@@ -173,7 +185,7 @@ Only include images with scores above 0.1, and sort by score descending.
 Return ONLY the JSON object, no other text or explanation.
 `;
 
-    const response = await ai.models.generateContent({
+    const response = await genAI.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
