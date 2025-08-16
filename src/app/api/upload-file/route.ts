@@ -13,12 +13,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Attempting to upload file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
     const fileUri = await uploadImageToGemini(file);
+    
+    console.log('Upload successful, fileUri:', fileUri);
     return NextResponse.json({ fileUri });
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Detailed error uploading file:", {
+      error: error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
-      { error: "Failed to upload file" },
+      { error: `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}` },
       { status: 500 }
     );
   }
