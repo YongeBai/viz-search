@@ -177,8 +177,12 @@ export function ImageModal({ image, isOpen, onClose }: ImageModalProps) {
                         </Button>
                       )}
                     </div>
-                    <div className="bg-muted/50 rounded-lg p-3 text-sm max-h-32 overflow-y-auto">
-                      {image.ocr_text || (
+                    <div className="bg-muted/50 rounded-lg p-4 text-base max-h-40 overflow-y-auto">
+                      {image.ocr_text ? (
+                        <pre className="whitespace-pre-wrap font-sans leading-relaxed">
+                          {image.ocr_text}
+                        </pre>
+                      ) : (
                         <span className="text-muted-foreground italic">No text found</span>
                       )}
                     </div>
@@ -205,8 +209,12 @@ export function ImageModal({ image, isOpen, onClose }: ImageModalProps) {
                         </Button>
                       )}
                     </div>
-                    <div className="bg-muted/50 rounded-lg p-3 text-sm max-h-32 overflow-y-auto">
-                      {image.image_description || (
+                    <div className="bg-muted/50 rounded-lg p-4 text-base max-h-40 overflow-y-auto">
+                      {image.image_description ? (
+                        <div className="leading-relaxed">
+                          {image.image_description}
+                        </div>
+                      ) : (
                         <span className="text-muted-foreground italic">No description available</span>
                       )}
                     </div>

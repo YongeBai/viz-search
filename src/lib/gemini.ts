@@ -48,20 +48,23 @@ export async function analyzeImage(
       contents: createUserContent([
         createPartFromUri(fileUri, mimeType),
         `Analyze this image and provide:
-1. All visible text in the image (OCR extraction)
+1. All visible text in the image (OCR extraction) - preserve line breaks and formatting
 2. A detailed description of what's shown in the image
 
 You MUST respond with ONLY valid JSON in this exact format:
 {
-  "ocr_text": "All text found in the image, separated by spaces or newlines as appropriate",
+  "ocr_text": "All text found in the image, preserving line breaks with \\n characters where text appears on separate lines",
   "image_description": "Detailed description of the visual content, objects, people, colors, layout, UI elements, etc."
 }
 
-Return ONLY the JSON object, no other text or explanation.`,
+IMPORTANT: 
+- Preserve the original text layout and line breaks using \\n
+- Keep text formatting as it appears in the image
+- Return ONLY the JSON object, no other text or explanation.`,
       ]),
       config: {
         systemInstruction:
-          "You are an expert at analyzing screenshots and images. You MUST respond with valid JSON only. Extract text accurately and provide detailed visual descriptions that would help someone search for this image later using natural language queries.",
+          "You are an expert at analyzing screenshots and images. You MUST respond with valid JSON only. Extract text accurately while preserving original formatting and line breaks using \\n characters. Provide detailed visual descriptions that would help someone search for this image later using natural language queries.",
         responseMimeType: "application/json",
       },
     });
