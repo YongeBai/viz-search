@@ -1,8 +1,10 @@
-import { ProcessedImage } from "./types";
+import { ProcessedImage, GeminiSearchResponse } from "./types";
 import { uploadFileToAPI, analyzeImageAPI } from "./api";
+import { searchImages } from "./gemini";
 
 // Configuration constants
-const BATCH_SIZE = 5; // Process 5 images concurrently
+const BATCH_SIZE = 15;
+const SEARCH_BATCH_SIZE = 10;
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY = 1000; // 1 second
 
@@ -187,4 +189,106 @@ export async function processImagesInBatches(
   );
 
   return allResults;
+}
+
+// Search-related types and functions
+export interface SearchBatchResult {
+  similarities: Array<{
+    image_id: string;
+    score: number;
+    reasoning?: string;
+  }>;
+}
+
+/**
+ * Search a batch of images in parallel
+ */
+export async function searchImageBatch(
+  query: string,
+  imageBatch: ProcessedImage[],
+): Promise<SearchBatchResult> {
+  try {
+    console.log(
+      `Searching batch of ${imageBatch.length} images for: "${query}"`,
+    );
+
+    const result = await withRetry(() => searchImages(query, imageBatch));
+
+    return {
+      similarities: result.similarities || [],
+    };
+  } catch (error) {
+    console.error(`Failed to search batch:`, error);
+    // Return empty results for this batch instead of failing entirely
+    return { similarities: [] };
+  }
+}
+
+/**
+ * Search all images in parallel batches
+ */
+export async function searchImagesInBatches(
+  query: string,
+  images: ProcessedImage[],
+  onBatchComplete?: (
+    results: SearchBatchResult,
+    batchIndex: number,
+    totalBatches: number,
+  ) => void,
+  batchSize: number = SEARCH_BATCH_SIZE,
+): Promise<SearchBatchResult> {
+  if (images.length === 0) {
+    return { similarities: [] };
+  }
+
+  const totalBatches = Math.ceil(images.length / batchSize);
+  const allSimilarities: Array<{
+    image_id: string;
+    score: number;
+    reasoning?: string;
+  }> = [];
+
+  console.log(
+    `Searching ${images.length} images in ${totalBatches} batches of ${batchSize}`,
+  );
+
+  // Process search in parallel batches
+  const batchPromises: Promise<SearchBatchResult>[] = [];
+
+  for (let i = 0; i < images.length; i += batchSize) {
+    const batch = images.slice(i, i + batchSize);
+    const batchPromise = searchImageBatch(query, batch);
+    batchPromises.push(batchPromise);
+  }
+
+  // Wait for all batches to complete
+  const batchResults = await Promise.allSettled(batchPromises);
+
+  // Collect results and handle any failures
+  batchResults.forEach((result, batchIndex) => {
+    if (result.status === "fulfilled") {
+      allSimilarities.push(...result.value.similarities);
+
+      // Callback for progress updates
+      if (onBatchComplete) {
+        onBatchComplete(result.value, batchIndex, totalBatches);
+      }
+    } else {
+      console.error(`Search batch ${batchIndex + 1} failed:`, result.reason);
+
+      // Still call progress callback with empty results
+      if (onBatchComplete) {
+        onBatchComplete({ similarities: [] }, batchIndex, totalBatches);
+      }
+    }
+  });
+
+  // Sort all results by score (highest first)
+  allSimilarities.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  console.log(
+    `Parallel search complete: ${allSimilarities.length} results found`,
+  );
+
+  return { similarities: allSimilarities };
 }

@@ -3,11 +3,11 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ProcessedImage, AppMode, AppState, UploadProgress } from "@/lib/types";
-import { searchImagesAPI } from "@/lib/api";
 import {
   processImagesInBatches,
   BatchProcessResult,
 } from "@/lib/batch-processor";
+import { searchImagesAPI } from "@/lib/api";
 import { FileDropzone } from "@/components/upload/file-dropzone";
 import { ImageGrid } from "@/components/upload/image-grid";
 import { SearchBar } from "@/components/search/search-bar";
